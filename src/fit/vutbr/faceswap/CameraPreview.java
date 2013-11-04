@@ -243,7 +243,7 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
 	            PointF midPoint=new PointF();
 	            face.getMidPoint(midPoint);
 	            
-	            //canvas.drawCircle(midPoint.x, midPoint.y, 10, rectPaint);
+	            canvas.drawCircle(midPoint.x, midPoint.y, 10, rectPaint);
 	            float eyeDistance=face.eyesDistance();
 	            canvas.drawRect(midPoint.x-eyeDistance, midPoint.y-eyeDistance, midPoint.x+eyeDistance, midPoint.y+eyeDistance, rectPaint);
 			}
