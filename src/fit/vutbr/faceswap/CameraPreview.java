@@ -156,8 +156,6 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
     
 	@Override
 	public void onPreviewFrame(byte[] data, Camera camera) {
-		Log.i("FaceDetector","Time Gap = "+(System.currentTimeMillis()-timestamp));
-	    timestamp=System.currentTimeMillis();
 		if (!listenerSupported) {
 		    // prevod na rgb565 za 15ms
 		    extractLuminanceNative(data, width, height, width, height, rgb);
@@ -183,7 +181,7 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
 			*/
 			
 		    // vyhledani obliceje za cca 500-1000ms
-		    foundFaces = faceDetector.findFaces(mBitmap, mFaces);
+		    //foundFaces = faceDetector.findFaces(mBitmap, mFaces);
 		    invalidate();
 		    mCamera.addCallbackBuffer(data);
 		}
@@ -205,47 +203,62 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
 	@Override
 	public void onDraw(Canvas canvas) {
 		super.onDraw(canvas);
-		/*Paint rectPaint2 = new Paint();
-		rectPaint2.setStyle(Paint.Style.STROKE);
-		rectPaint2.setStrokeWidth(3);
-		rectPaint2.setColor(Color.RED);
-		canvas.drawRect(new Rect(20, 20, this.getWidth() - 20, this.getHeight() - 20), rectPaint2);*/
+
 		if (mBitmap != null) {
-			//canvas.drawText(this.foundFaces+"", 50, 50, textPaint);
-	       //canvas.drawRect(new Rect(20, 20, mBitmap.getWidth() - 20, mBitmap.getHeight() - 20), rectPaint);
+			// Framerate
+			Log.i("FaceDetector","Time Gap = "+(System.currentTimeMillis()-timestamp));
+		    timestamp=System.currentTimeMillis();
 			
+			// listener is supported. Great framerate!! :]
 			if (listenerSupported && listener.mFaces != null) {
-				Log.d("Found faces", listener.mFaces.length+"");
-				
-				if (listener.mFaces.length > 0) {
-					Camera.Face face = listener.mFaces[0];
-					canvas.drawCircle(face.leftEye.x, face.leftEye.y, 10, rectPaint);
-				}
+				//Log.d("Found faces", listener.mFaces.length+"");
+				//canvas.drawText(listener.mFaces.length+"", 50, 50, textPaint);
+				for (Camera.Face face : listener.mFaces) {
+					
+					int l = face.rect.left;
+				    int t = face.rect.top;
+				    int r = face.rect.right;
+				    int b = face.rect.bottom;
+				    int left = (l+1000) * getWidth()/2000;
+				    int top  = (t+1000) * getHeight()/2000;
+				    int right = (r+1000) * getWidth()/2000;
+				    int bottom = (b+1000) * getHeight()/2000;
+				    canvas.drawRect(
+				      left, top, right, bottom,  
+				      rectPaint);
+			   }	
 			}
-	        //Log.d("Bitmap", mBitmap.getWidth() + "x" + mBitmap.getHeight());
-	        //Log.d("Preview", this.getWidth() + "x" + this.getHeight());
-			for (int i=0; i < foundFaces; i++) {
-				/*Face face = mFaces[i];
-		    	
-		    	PointF midEyes = new PointF();
-		        face.getMidPoint( midEyes );
-		        
-		        float eyedist = face.eyesDistance();
-		        PointF lt = new PointF( midEyes.x - eyedist * 2.0f, midEyes.y - eyedist * 2.5f );
-		        
-		        canvas.drawRect(Math.max( (int) ( lt.x ), 0 ), 
-		        				Math.max( (int) ( lt.y ), 0 ), 
-		        				Math.min( (int) ( lt.x + eyedist * 4.0f ), getWidth() ), 
-		        				Math.min( (int) ( lt.y + eyedist * 5.5f ), getHeight() ), 
-		        				rectPaint);
-		        				*/
-				Face face = mFaces[i];
-	            PointF midPoint=new PointF();
-	            face.getMidPoint(midPoint);
-	            
-	            canvas.drawCircle(midPoint.x, midPoint.y, 10, rectPaint);
-	            float eyeDistance=face.eyesDistance();
-	            canvas.drawRect(midPoint.x-eyeDistance, midPoint.y-eyeDistance, midPoint.x+eyeDistance, midPoint.y+eyeDistance, rectPaint);
+			// listener is not supported :[ here comes my algorithm yieeey 
+			else {
+				for (int i=0; i < foundFaces; i++) {
+					/*Face face = mFaces[i];
+			    	
+			    	PointF midEyes = new PointF();
+			        face.getMidPoint( midEyes );
+			        
+			        float eyedist = face.eyesDistance();
+			        PointF lt = new PointF( midEyes.x - eyedist * 2.0f, midEyes.y - eyedist * 2.5f );
+			        
+			        canvas.drawRect(Math.max( (int) ( lt.x ), 0 ), 
+			        				Math.max( (int) ( lt.y ), 0 ), 
+			        				Math.min( (int) ( lt.x + eyedist * 4.0f ), getWidth() ), 
+			        				Math.min( (int) ( lt.y + eyedist * 5.5f ), getHeight() ), 
+			        				rectPaint);
+			        				*/
+					Face face = mFaces[i];
+		            PointF midPoint=new PointF();
+		            face.getMidPoint(midPoint);
+		            
+		            canvas.drawCircle(midPoint.x, midPoint.y, 10, rectPaint);
+		            float eyeDistance=face.eyesDistance();
+		            canvas.drawRect(
+		            			midPoint.x-eyeDistance, 
+		            			midPoint.y-eyeDistance, 
+		            			midPoint.x+eyeDistance, 
+		            			midPoint.y+eyeDistance, 
+		            			rectPaint
+		            );
+				}
 			}
 		}
 		return;
