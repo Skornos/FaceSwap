@@ -1,13 +1,13 @@
 package fit.vutbr.faceswap;
 
-import java.io.IOException;
 import java.util.List;
+
+import org.opencv.objdetect.CascadeClassifier;
 
 import android.content.Context;
 import android.hardware.Camera;
 import android.hardware.Camera.Size;
-import android.util.Log;
-import android.view.SurfaceHolder;
+import android.util.AttributeSet;
 import android.view.SurfaceView;
 import android.view.View;
 import android.view.ViewGroup;
@@ -20,20 +20,35 @@ import android.view.ViewGroup;
 * support preview sizes at the same aspect ratio as the device's display.
 */
 public class Preview extends ViewGroup {
- private final String TAG = "Preview";
+ //private final String TAG = "Preview";
 
  SurfaceView mSurfaceView;
  Size mPreviewSize;
  List<Size> mSupportedPreviewSizes;
  Camera mCamera;
  CameraPreview mCameraPreview;
+
+
  
- Preview(Context context, Camera camera) {
+ public Preview(Context context) {
      super(context);
-     
+ }
+ 
+ public Preview(Context context, AttributeSet attrs) {
+     super(context, attrs);
+ }
+
+ public Preview(Context context, AttributeSet attrs, int defStyle) {
+     super(context, attrs, defStyle);
+ }
+ 
+ void setPreview(Context context, Camera camera, CascadeClassifier mJavaDetector) {
+    // super(context);
+          
      mCamera = camera;
-     mCameraPreview = new CameraPreview(context, camera);
-     addView(mCameraPreview);
+     
+     mCameraPreview = (CameraPreview) findViewById(R.id.camerapreview);
+     mCameraPreview.setCameraPreview(context, mCamera, mJavaDetector);
      
      mSupportedPreviewSizes = mCamera.getParameters().getSupportedPreviewSizes();
      requestLayout();

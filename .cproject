@@ -30,8 +30,10 @@
 							</builder>
 							<tool id="com.android.gcc.compiler.1878710841" name="Android GCC Compiler" superClass="com.android.gcc.compiler">
 								<option id="com.android.gcc.option.includePath.2018456754" superClass="com.android.gcc.option.includePath" valueType="includePath">
-									<listOptionValue builtIn="false" value="&quot;C:\Android\NDK-r9\platforms\android-18\arch-arm\usr\include&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;C:\Android\NDK-r9\sources\cxx-stl\gnu-libstdc++\4.6\libs\armeabi-v7a\include&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;C:\Android\NDK-r9\sources\cxx-stl\gnu-libstdc++\4.6\include&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;C:\Android\NDK-r9\platforms\android-18\arch-arm\usr\include&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;C:\Users\Acer\Projects\OpenCV\OpenCV-2.4.6-android-sdk\sdk\native\jni\include&quot;"/>
 								</option>
 								<inputType id="com.android.gcc.inputType.814378537" superClass="com.android.gcc.inputType"/>
 							</tool>
@@ -55,5 +57,8 @@
 			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId="com.android.AndroidPerProjectProfile"/>
 		</scannerConfigBuildInfo>
 	</storageModule>
-	<storageModule moduleId="refreshScope"/>
+	<storageModule moduleId="refreshScope" versionNumber="1">
+		<resource resourceType="PROJECT" workspacePath="/FaceSwap"/>
+	</storageModule>
+	<storageModule moduleId="org.eclipse.cdt.internal.ui.text.commentOwnerProjectMappings"/>
 </cproject>

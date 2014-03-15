@@ -24,6 +24,26 @@ obj/local/armeabi-v7a/objs/processImage/processImage.o: \
  C:/Android/NDK-r9/platforms/android-18/arch-arm/usr/include/strings.h \
  C:/Android/NDK-r9/platforms/android-18/arch-arm/usr/include/memory.h \
  C:/Android/NDK-r9/sources/cxx-stl/gnu-libstdc++/4.6/include/iostream \
+ C:/Users\Acer\Projects\OpenCV\OpenCV-2.4.6-android-sdk\sdk\native\jni\/include/opencv2/video/tracking.hpp \
+ C:/Users\Acer\Projects\OpenCV\OpenCV-2.4.6-android-sdk\sdk\native\jni\/include/opencv2/core/core.hpp \
+ C:/Users\Acer\Projects\OpenCV\OpenCV-2.4.6-android-sdk\sdk\native\jni\/include/opencv2/core/types_c.h \
+ C:/Android/NDK-r9/platforms/android-18/arch-arm/usr/include/assert.h \
+ C:/Android/NDK-r9/platforms/android-18/arch-arm/usr/include/math.h \
+ C:/Users\Acer\Projects\OpenCV\OpenCV-2.4.6-android-sdk\sdk\native\jni\/include/opencv2/core/version.hpp \
+ C:/Android/NDK-r9/sources/cxx-stl/gnu-libstdc++/4.6/include/algorithm \
+ C:/Android/NDK-r9/sources/cxx-stl/gnu-libstdc++/4.6/include/cmath \
+ C:/Android/NDK-r9/sources/cxx-stl/gnu-libstdc++/4.6/include/cstddef \
+ C:/Android/NDK-r9/sources/cxx-stl/gnu-libstdc++/4.6/include/complex \
+ C:/Android/NDK-r9/sources/cxx-stl/gnu-libstdc++/4.6/include/map \
+ C:/Android/NDK-r9/sources/cxx-stl/gnu-libstdc++/4.6/include/vector \
+ C:/Users\Acer\Projects\OpenCV\OpenCV-2.4.6-android-sdk\sdk\native\jni\/include/opencv2/core/operations.hpp \
+ C:/Android/NDK-r9/sources/cxx-stl/gnu-libstdc++/4.6/include/limits \
+ C:/Users\Acer\Projects\OpenCV\OpenCV-2.4.6-android-sdk\sdk\native\jni\/include/opencv2/core/mat.hpp \
+ C:/Users\Acer\Projects\OpenCV\OpenCV-2.4.6-android-sdk\sdk\native\jni\/include/opencv2/imgproc/imgproc.hpp \
+ C:/Users\Acer\Projects\OpenCV\OpenCV-2.4.6-android-sdk\sdk\native\jni\/include/opencv2/imgproc/types_c.h \
+ C:/Users\Acer\Projects\OpenCV\OpenCV-2.4.6-android-sdk\sdk\native\jni\/include/opencv2/core/core_c.h \
+ C:/Users\Acer\Projects\OpenCV\OpenCV-2.4.6-android-sdk\sdk\native\jni\/include/opencv2/highgui/highgui.hpp \
+ C:/Users\Acer\Projects\OpenCV\OpenCV-2.4.6-android-sdk\sdk\native\jni\/include/opencv2/highgui/highgui_c.h \
  jni/processImage.h \
  C:/Android/NDK-r9/platforms/android-18/arch-arm/usr/include/android/log.h
 
@@ -74,6 +94,46 @@ C:/Android/NDK-r9/platforms/android-18/arch-arm/usr/include/strings.h:
 C:/Android/NDK-r9/platforms/android-18/arch-arm/usr/include/memory.h:
 
 C:/Android/NDK-r9/sources/cxx-stl/gnu-libstdc++/4.6/include/iostream:
+
+C:/Users\Acer\Projects\OpenCV\OpenCV-2.4.6-android-sdk\sdk\native\jni\/include/opencv2/video/tracking.hpp:
+
+C:/Users\Acer\Projects\OpenCV\OpenCV-2.4.6-android-sdk\sdk\native\jni\/include/opencv2/core/core.hpp:
+
+C:/Users\Acer\Projects\OpenCV\OpenCV-2.4.6-android-sdk\sdk\native\jni\/include/opencv2/core/types_c.h:
+
+C:/Android/NDK-r9/platforms/android-18/arch-arm/usr/include/assert.h:
+
+C:/Android/NDK-r9/platforms/android-18/arch-arm/usr/include/math.h:
+
+C:/Users\Acer\Projects\OpenCV\OpenCV-2.4.6-android-sdk\sdk\native\jni\/include/opencv2/core/version.hpp:
+
+C:/Android/NDK-r9/sources/cxx-stl/gnu-libstdc++/4.6/include/algorithm:
+
+C:/Android/NDK-r9/sources/cxx-stl/gnu-libstdc++/4.6/include/cmath:
+
+C:/Android/NDK-r9/sources/cxx-stl/gnu-libstdc++/4.6/include/cstddef:
+
+C:/Android/NDK-r9/sources/cxx-stl/gnu-libstdc++/4.6/include/complex:
+
+C:/Android/NDK-r9/sources/cxx-stl/gnu-libstdc++/4.6/include/map:
+
+C:/Android/NDK-r9/sources/cxx-stl/gnu-libstdc++/4.6/include/vector:
+
+C:/Users\Acer\Projects\OpenCV\OpenCV-2.4.6-android-sdk\sdk\native\jni\/include/opencv2/core/operations.hpp:
+
+C:/Android/NDK-r9/sources/cxx-stl/gnu-libstdc++/4.6/include/limits:
+
+C:/Users\Acer\Projects\OpenCV\OpenCV-2.4.6-android-sdk\sdk\native\jni\/include/opencv2/core/mat.hpp:
+
+C:/Users\Acer\Projects\OpenCV\OpenCV-2.4.6-android-sdk\sdk\native\jni\/include/opencv2/imgproc/imgproc.hpp:
+
+C:/Users\Acer\Projects\OpenCV\OpenCV-2.4.6-android-sdk\sdk\native\jni\/include/opencv2/imgproc/types_c.h:
+
+C:/Users\Acer\Projects\OpenCV\OpenCV-2.4.6-android-sdk\sdk\native\jni\/include/opencv2/core/core_c.h:
+
+C:/Users\Acer\Projects\OpenCV\OpenCV-2.4.6-android-sdk\sdk\native\jni\/include/opencv2/highgui/highgui.hpp:
+
+C:/Users\Acer\Projects\OpenCV\OpenCV-2.4.6-android-sdk\sdk\native\jni\/include/opencv2/highgui/highgui_c.h:
 
 jni/processImage.h:
 

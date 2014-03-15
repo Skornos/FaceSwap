@@ -3,11 +3,72 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <iostream>
+
+#include <ctype.h>
+
+#include "opencv2/video/tracking.hpp"
+#include "opencv2/highgui/highgui.hpp"
+
 #include "processImage.h"
 
+using namespace cv;
 using namespace std;
 
 extern "C" {
+
+bool first_time = true;
+KalmanFilter KF(6, 2, 0);
+Mat_<float> measurement(2,1);
+
+jintArray Java_fit_vutbr_faceswap_CameraPreview_kalmanFilter( JNIEnv* env,
+                                                  jobject thiz,
+                                                  jint center_x,
+                                                  jint center_y) {
+	if (first_time) {
+		KF.transitionMatrix = *(Mat_(6, 6) << 1,0,1,0,0.5,0, 0,1,0,1,0,0.5, 0,0,1,0,1,0, 0,0,0,1,0,1, 0,0,0,0,1,0, 0,0,0,0,0,1);
+		measurement.setTo(Scalar(0));
+
+		// init...
+		KF.statePre.at<float>(0) = center_x;
+		KF.statePre.at<float>(1) = center_y;
+		KF.statePre.at<float>(2) = 0;
+		KF.statePre.at<float>(3) = 0;
+		KF.statePre.at<float>(4) = 0;
+		KF.statePre.at<float>(5) = 0;
+		//KF.measurementMatrix = *(Mat_(2, 6) << 1,0,1,0,0.5,0, 0,1,0,1,0,0.5);
+		setIdentity(KF.measurementMatrix);
+		setIdentity(KF.processNoiseCov, Scalar::all(1e-2));
+		setIdentity(KF.measurementNoiseCov, Scalar::all(1e-1));
+		setIdentity(KF.errorCovPost, Scalar::all(.1));
+	}
+
+	// First predict, to update the internal statePre variable
+	Mat prediction = KF.predict();
+	Point predictPt(prediction.at<float>(0),prediction.at<float>(1));
+
+	measurement(0) = center_x;
+	measurement(1) = center_y;
+
+	Point measPt(measurement(0),measurement(1));
+
+	// The "correct" phase that is going to use the predicted value and our measurement
+	Mat estimated = KF.correct(measurement);
+	Point statePt(estimated.at<float>(0),estimated.at<float>(1));
+
+	//__android_log_print(ANDROID_LOG_INFO, "native", "x = %d, y = %d", statePt.x, statePt.y);
+
+	jintArray ret = env->NewIntArray(2);
+	jint *narr = env->GetIntArrayElements(ret, NULL);
+
+	narr[0] = statePt.x;
+	narr[1] = statePt.y;
+
+	env->ReleaseIntArrayElements(ret, narr, NULL);
+
+	first_time = false;
+
+	return ret;
+}
 
 void Java_fit_vutbr_faceswap_CameraPreview_extractLuminanceNative( JNIEnv* env,
                                                   jobject thiz,
