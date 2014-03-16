@@ -18,15 +18,17 @@ import android.view.ViewGroup;
 * A simple wrapper around a Camera and a SurfaceView that renders a centered preview of the Camera
 * to the surface. We need to center the SurfaceView because not all devices have cameras that
 * support preview sizes at the same aspect ratio as the device's display.
+* 
+* Adapted from: [source]
 */
 public class Preview extends ViewGroup {
  //private final String TAG = "Preview";
 
- SurfaceView mSurfaceView;
- Size mPreviewSize;
- List<Size> mSupportedPreviewSizes;
- Camera mCamera;
- CameraPreview mCameraPreview;
+ SurfaceView 			mSurfaceView;
+ Size 					mPreviewSize;
+ List<Size> 			mSupportedPreviewSizes;
+ Camera 				mCamera;
+ CameraPreview 			mCameraPreview;
 
 
  

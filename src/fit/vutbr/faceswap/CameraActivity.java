@@ -25,10 +25,23 @@ import android.widget.ImageButton;
 import android.widget.Toast;
 import fit.vutbr.faceswap.CameraPreview.TrackerType;
 
-
+/**
+ * 
+ * @author Petr Skornok
+ * FaceSwap 1.0
+ * Android app for (almost) realtime face swapping
+ * Features:
+ * 		- switching front and back camera if available
+ * 		- using different face detection and tracking algorithms
+ * 		- capture a photo 
+ * 		- swap faces between people on screen or 
+ * 		  or betweeen you and couple of prepared characters (starring Nicolas Cage)
+ * 		- capture a video?
+ *
+ */
 public class CameraActivity extends Activity {
 	
-	final static String TAG = "Faceswap";
+	final static String 		  TAG = "Faceswap";
 	
     private Preview 			   mPreview;
     private File                   mCascadeFile;
@@ -37,6 +50,7 @@ public class CameraActivity extends Activity {
     public static int	   	       mCameraID = Camera.CameraInfo.CAMERA_FACING_FRONT;
     private MenuItem			   kltItem, camshiftItem, kalmanItem, noTrackerItem; 
     
+    // OpenCV static initialization
     static {
         if (!OpenCVLoader.initDebug()) {
             // Handle initialization error
@@ -47,6 +61,7 @@ public class CameraActivity extends Activity {
         }
     }
     
+    // OpenCV loader callback
     private BaseLoaderCallback mOpenCVCallBack = new BaseLoaderCallback(this) {
     	@Override
 	    public void onManagerConnected(int status) {
@@ -54,7 +69,6 @@ public class CameraActivity extends Activity {
 	            case LoaderCallbackInterface.SUCCESS:
 	            {
 	                Log.i(TAG, "OpenCV loaded successfully");
-	                
 	                
 	                try {
 	                    // load cascade file from application resources
@@ -96,7 +110,6 @@ public class CameraActivity extends Activity {
     
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-    	Log.i(TAG, "onCreate: " + savedInstanceState);
         super.onCreate(savedInstanceState);
         
         // keep screen ON
@@ -106,6 +119,8 @@ public class CameraActivity extends Activity {
         // OpenCV static initialization
         mOpenCVCallBack.onManagerConnected(LoaderCallbackInterface.SUCCESS);
         
+        // passing an argument to Activity containing information
+        // which camera to open (FRONT/BACK)
         Bundle b = getIntent().getExtras();
         Log.i("Bundle", getIntent().getExtras()+"");
         if (b != null) {
@@ -136,6 +151,8 @@ public class CameraActivity extends Activity {
         //Load();
     }
     
+    /** 
+     *  Function which opens the camera and starts SurfaceView*/
     public void Load(){
         mCamera = getCameraInstance();
         if (mCamera != null){
@@ -164,6 +181,8 @@ public class CameraActivity extends Activity {
         }
     }
     
+    /**
+     * Function for switching the camera to @cameraID*/
     private void switchCamera(int cameraID) {
     	///if (Build.VERSION.SDK_INT >= 11) {
     	   // recreate();
@@ -177,13 +196,11 @@ public class CameraActivity extends Activity {
     	//}
 	}
     
-    /** Funkce, ktera vraci instanci Camera objektu */
+    /** Function which returns instance of Camera */
 	public static Camera getCameraInstance() {
 	    Camera c = null;
 	    try {
-	        //c = Camera.open(Camera.CameraInfo.CAMERA_FACING_FRONT); 
 	        //c = getFrontFacingCamera();
-	    	
 	    	c = Camera.open(mCameraID);
 	    }
 	    catch (Exception e){
@@ -220,6 +237,8 @@ public class CameraActivity extends Activity {
         return true;
     }
     
+    /**
+     * Function to open front camera*/
     static Camera getFrontFacingCamera() throws NoSuchElementException {
     	Camera.CameraInfo cameraInfo = new Camera.CameraInfo();
     	for (int cameraIndex = 0; cameraIndex < Camera.getNumberOfCameras(); cameraIndex++) {

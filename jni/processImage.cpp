@@ -24,6 +24,7 @@ jintArray Java_fit_vutbr_faceswap_CameraPreview_kalmanFilter( JNIEnv* env,
                                                   jobject thiz,
                                                   jint center_x,
                                                   jint center_y) {
+	// kalman filter initialization
 	if (first_time) {
 		KF.transitionMatrix = *(Mat_(6, 6) << 1,0,1,0,0.5,0, 0,1,0,1,0,0.5, 0,0,1,0,1,0, 0,0,0,1,0,1, 0,0,0,0,1,0, 0,0,0,0,0,1);
 		measurement.setTo(Scalar(0));
@@ -68,6 +69,20 @@ jintArray Java_fit_vutbr_faceswap_CameraPreview_kalmanFilter( JNIEnv* env,
 	first_time = false;
 
 	return ret;
+}
+
+void Java_fit_vutbr_faceswap_CameraPreview_HeadPoseNative( JNIEnv* env,
+                                                  jobject thiz,
+                                                  jbyteArray jyuv,
+                                                  jint yuv_width,
+                                                  jint yuv_height,
+                                                  jint rgb_width,
+                                                  jint rgb_height,
+                                                  jintArray jrgb)
+{
+	jbyte *yuv = env->GetByteArrayElements(jyuv, 0);
+	env->GetArrayLength(jyuv);
+	env->ReleaseByteArrayElements(jyuv, yuv, 0);
 }
 
 void Java_fit_vutbr_faceswap_CameraPreview_extractLuminanceNative( JNIEnv* env,
