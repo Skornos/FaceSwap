@@ -56,13 +56,12 @@ containing a value of this type.
         public static final int switch_100px_white=0x7f020006;
     }
     public static final class id {
-        public static final int action_settings=0x7f050006;
+        public static final int action_settings=0x7f050005;
         public static final int any=0x7f050000;
         public static final int back=0x7f050001;
         public static final int camerapreview=0x7f050004;
         public static final int front=0x7f050002;
         public static final int preview=0x7f050003;
-        public static final int switch_camera_button=0x7f050005;
     }
     public static final class layout {
         public static final int main=0x7f030000;
@@ -71,7 +70,9 @@ containing a value of this type.
         public static final int main=0x7f090000;
     }
     public static final class raw {
-        public static final int lbpcascade_frontalface=0x7f040000;
+        public static final int haarcascade_eye=0x7f040000;
+        public static final int haarcascade_eye_tree_eyeglasses=0x7f040001;
+        public static final int lbpcascade_frontalface=0x7f040002;
     }
     public static final class string {
         public static final int action_settings=0x7f070001;

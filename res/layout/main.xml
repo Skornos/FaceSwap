@@ -44,12 +44,12 @@
 	    </fit.vutbr.faceswap.CameraPreview>
 	    
 	</fit.vutbr.faceswap.Preview>
-    <ImageButton
+    <!-- <ImageButton
 			        android:id="@+id/switch_camera_button"
 			        android:layout_width="wrap_content"
 			        android:layout_height="wrap_content"
 			        android:background="@null"
 			        android:src="@drawable/switch_100px_white" />  
-    
+     -->
 </LinearLayout>
 

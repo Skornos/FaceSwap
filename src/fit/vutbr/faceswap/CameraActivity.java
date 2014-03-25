@@ -1,28 +1,28 @@
 package fit.vutbr.faceswap;
 
-import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
+import java.util.List;
 import java.util.NoSuchElementException;
 
 import org.opencv.android.BaseLoaderCallback;
 import org.opencv.android.LoaderCallbackInterface;
 import org.opencv.android.OpenCVLoader;
-import org.opencv.objdetect.CascadeClassifier;
 
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
+import android.graphics.ImageFormat;
 import android.hardware.Camera;
+import android.hardware.Camera.Size;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.SurfaceHolder;
 import android.view.View;
-import android.view.View.OnClickListener;
+import android.view.ViewGroup;
+import android.view.WindowManager;
 import android.widget.ImageButton;
-import android.widget.Toast;
 import fit.vutbr.faceswap.CameraPreview.TrackerType;
 
 /**
@@ -44,8 +44,6 @@ public class CameraActivity extends Activity {
 	final static String 		  TAG = "Faceswap";
 	
     private Preview 			   mPreview;
-    private File                   mCascadeFile;
-    private CascadeClassifier      mJavaDetector;
     private Camera 				   mCamera;
     public static int	   	       mCameraID = Camera.CameraInfo.CAMERA_FACING_FRONT;
     private MenuItem			   kltItem, camshiftItem, kalmanItem, noTrackerItem; 
@@ -69,35 +67,6 @@ public class CameraActivity extends Activity {
 	            case LoaderCallbackInterface.SUCCESS:
 	            {
 	                Log.i(TAG, "OpenCV loaded successfully");
-	                
-	                try {
-	                    // load cascade file from application resources
-	                    InputStream is = getResources().openRawResource(R.raw.lbpcascade_frontalface);
-	                    File cascadeDir = getDir("cascade", Context.MODE_PRIVATE);
-	                    mCascadeFile = new File(cascadeDir, "lbpcascade_frontalface.xml");
-	                    FileOutputStream os = new FileOutputStream(mCascadeFile);
-	                    
-	                    byte[] buffer = new byte[4096];
-	                    int bytesRead;
-	                    while ((bytesRead = is.read(buffer)) != -1) {
-	                        os.write(buffer, 0, bytesRead);
-	                    }
-	                    is.close();
-	                    os.close();
-	
-	                    mJavaDetector = new CascadeClassifier(mCascadeFile.getAbsolutePath());
-	                    if (mJavaDetector.empty()) {
-	                        Log.e(TAG, "Failed to load cascade classifier");
-	                        mJavaDetector = null;
-	                    } else
-	                        Log.i(TAG, "Loaded cascade classifier from " + mCascadeFile.getAbsolutePath());
-	                    
-	                    cascadeDir.delete();
-	
-	                } catch (IOException e) {
-	                    e.printStackTrace();
-	                    Log.e(TAG, "Failed to load cascade. Exception thrown: " + e);
-	                }
 	
 	            } break;
 	            default:
@@ -113,7 +82,8 @@ public class CameraActivity extends Activity {
         super.onCreate(savedInstanceState);
         
         // keep screen ON
-        getWindow().clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        //getWindow().clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         
         Log.i(TAG, "Trying to load OpenCV library");
         // OpenCV static initialization
@@ -132,53 +102,33 @@ public class CameraActivity extends Activity {
         	Log.i("Bundle", "mCameraID = NULL");
         }
         
-        Load();
+        mPreview = new Preview(this);
+        setContentView(mPreview);
     }
     
     @Override
     protected void onPause() {
         super.onPause();
-        if (mPreview != null){
-        	mPreview.mCameraPreview.onPause();
-        	mPreview.mCameraPreview.getHolder().removeCallback(mPreview.mCameraPreview);
-        	mPreview = null;
+
+        // Release the Camera because we don't need it when paused
+        // and other activities might need to use it.
+        if (mCamera != null) {
+        	mCamera.setPreviewCallback(null);
+        	mCamera.stopPreview();
+        	mPreview.mCameraPreview.getHolder().removeCallback(mPreview);
+            mCamera.release();
+            mCamera = null;
         }
+        
+        mPreview.mCameraPreview.setWillNotDraw(true);
     }
     
     @Override
     protected void onResume(){
         super.onResume();
-        //Load();
-    }
-    
-    /** 
-     *  Function which opens the camera and starts SurfaceView*/
-    public void Load(){
+        
         mCamera = getCameraInstance();
-        if (mCamera != null){
-        	setContentView(R.layout.main);    	   	
-    	   	mPreview = (Preview) findViewById(R.id.preview);
-        	mPreview.setPreview(this, mCamera, mJavaDetector); 
-        	
-        	ImageButton switchCameraButton = (ImageButton) findViewById(R.id.switch_camera_button);
-        	switchCameraButton.setOnClickListener(new OnClickListener() {
-       			@Override
-       			public void onClick(View v) {
-       				if (mCameraID == Camera.CameraInfo.CAMERA_FACING_FRONT) {
-       					switchCamera(Camera.CameraInfo.CAMERA_FACING_BACK);
-       				}
-       				else {
-       					switchCamera(Camera.CameraInfo.CAMERA_FACING_FRONT);
-       				}
-       			}
-       	 });   
-        }
-        else {
-           Toast toast = Toast.makeText(getApplicationContext(), 
-              "Unable to find camera. Closing.", Toast.LENGTH_SHORT);
-           toast.show();
-           finish();
-        }
+        mPreview.setCamera(mCamera);
     }
     
     /**
@@ -255,4 +205,205 @@ public class CameraActivity extends Activity {
     	throw new NoSuchElementException("Can't find front camera.");
     }
     
+}
+
+//----------------------------------------------------------------------
+
+/**
+* A simple wrapper around a Camera and a SurfaceView that renders a centered preview of the Camera
+* to the surface. We need to center the SurfaceView because not all devices have cameras that
+* support preview sizes at the same aspect ratio as the device's display.
+* 
+* Adapted from: Samples/android-14/ApiDemos/src/com/example/android/apis/graphics/CameraPreview.java
+*/
+class Preview extends ViewGroup implements SurfaceHolder.Callback {
+ private final String TAG = "Preview";
+
+ CameraPreview 		mCameraPreview;
+ SurfaceHolder		mHolder;
+ Size 				mPreviewSize;
+ List<Size> 		mSupportedPreviewSizes;
+ Camera 			mCamera;
+ 
+ @SuppressWarnings("deprecation")
+Preview(Context context) {
+     super(context);
+     
+     /*
+     ImageButton im = new ImageButton(context);
+     im.setImageResource(R.drawable.switch_100px_white);
+     im.setBackground(null);
+     im.setOnClickListener(new OnClickListener() {
+			@Override
+			public void onClick(View v) {
+				if (mCameraID == Camera.CameraInfo.CAMERA_FACING_FRONT) {
+					switchCamera(Camera.CameraInfo.CAMERA_FACING_BACK);
+				}
+				else {
+					switchCamera(Camera.CameraInfo.CAMERA_FACING_FRONT);
+				}
+			}
+	 });   
+     addView(im);*/
+     
+     mCameraPreview = new CameraPreview(context);
+     addView(mCameraPreview);
+
+     // Install a SurfaceHolder.Callback so we get notified when the
+     // underlying surface is created and destroyed.
+     mHolder = mCameraPreview.getHolder();
+     mHolder.addCallback(this);
+     mHolder.setFormat(ImageFormat.NV21);
+     mHolder.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
+ }
+
+ public void setCamera(Camera camera) {
+     mCamera = camera;
+     mCameraPreview.setCamera(camera);
+     if (mCamera != null) {
+         mSupportedPreviewSizes = mCamera.getParameters().getSupportedPreviewSizes();
+         requestLayout();
+     }
+ }
+
+ public void switchCamera(Camera camera) {
+    setCamera(camera);
+    
+    try {
+        camera.setPreviewDisplay(mHolder);
+    } catch (IOException exception) {
+        Log.e(TAG, "IOException caused by setPreviewDisplay()", exception);
+    }
+    Camera.Parameters parameters = camera.getParameters();
+    parameters.setPreviewSize(mPreviewSize.width, mPreviewSize.height);
+    requestLayout();
+
+    camera.setParameters(parameters);
+ }
+
+ @Override
+ protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
+     // We purposely disregard child measurements because act as a
+     // wrapper to a SurfaceView that centers the camera preview instead
+     // of stretching it.
+     final int width = resolveSize(getSuggestedMinimumWidth(), widthMeasureSpec);
+     final int height = resolveSize(getSuggestedMinimumHeight(), heightMeasureSpec);
+     setMeasuredDimension(width, height);
+
+     if (mSupportedPreviewSizes != null) {
+         mPreviewSize = getOptimalPreviewSize(mSupportedPreviewSizes, width, height);
+     }
+ }
+
+ @Override
+ protected void onLayout(boolean changed, int l, int t, int r, int b) {
+     if (changed && getChildCount() > 0) {
+         final View child = getChildAt(0);
+
+         final int width = r - l;
+         final int height = b - t;
+
+         int previewWidth = width;
+         int previewHeight = height;
+         if (mPreviewSize != null) {
+             previewWidth = mPreviewSize.width;
+             previewHeight = mPreviewSize.height;
+         }
+
+         // Center the child SurfaceView within the parent.
+         if (width * previewHeight > height * previewWidth) {
+             final int scaledChildWidth = previewWidth * height / previewHeight;
+             child.layout((width - scaledChildWidth) / 2, 0,
+                     (width + scaledChildWidth) / 2, height);
+         } else {
+             final int scaledChildHeight = previewHeight * width / previewWidth;
+             child.layout(0, (height - scaledChildHeight) / 2,
+                     width, (height + scaledChildHeight) / 2);
+         }
+     }
+ }
+
+ public void surfaceCreated(SurfaceHolder holder) {
+     // The Surface has been created, acquire the camera and tell it where
+     // to draw.
+     try {
+         if (mCamera != null) {
+             mCamera.setPreviewDisplay(holder);
+         }
+     } catch (IOException exception) {
+         Log.e(TAG, "IOException caused by setPreviewDisplay()", exception);
+     }
+     
+     mCameraPreview.setWillNotDraw(false);
+ }
+
+ public void surfaceDestroyed(SurfaceHolder holder) {
+     // Surface will be destroyed when we return, so stop the preview.
+     if (mCamera != null) {
+        // mCamera.stopPreview();
+     }
+ }
+
+
+ private Size getOptimalPreviewSize(List<Size> sizes, int w, int h) {
+     final double ASPECT_TOLERANCE = 0.1;
+     double targetRatio = (double) w / h;
+     if (sizes == null) return null;
+
+     Size optimalSize = null;
+     double minDiff = Double.MAX_VALUE;
+
+     int targetHeight = h;
+
+     // Try to find an size match aspect ratio and size
+     for (Size size : sizes) {
+         double ratio = (double) size.width / size.height;
+         if (Math.abs(ratio - targetRatio) > ASPECT_TOLERANCE) continue;
+         if (Math.abs(size.height - targetHeight) < minDiff) {
+             optimalSize = size;
+             minDiff = Math.abs(size.height - targetHeight);
+         }
+     }
+
+     // Cannot find the one match the aspect ratio, ignore the requirement
+     if (optimalSize == null) {
+         minDiff = Double.MAX_VALUE;
+         for (Size size : sizes) {
+             if (Math.abs(size.height - targetHeight) < minDiff) {
+                 optimalSize = size;
+                 minDiff = Math.abs(size.height - targetHeight);
+             }
+         }
+     }
+     return optimalSize;
+ }
+
+ public void surfaceChanged(SurfaceHolder holder, int format, int w, int h) {
+     // Now that the size is known, set up the camera parameters and begin
+     // the preview.
+     Camera.Parameters parameters = mCamera.getParameters();
+     parameters.setPreviewSize(mPreviewSize.width, mPreviewSize.height);
+     requestLayout();
+
+     mCamera.setParameters(parameters);
+     
+     int height = parameters.getPreviewSize().height;
+	 int width = parameters.getPreviewSize().width;
+	 
+	 mCameraPreview.setSize(height, width);
+	 
+    // using preview callback buffer which is faster than normal callback			
+    int bufSize = height * width *
+            ImageFormat.getBitsPerPixel(mCamera.getParameters().getPreviewFormat()) / 8;
+    
+    mCamera.addCallbackBuffer(new byte[bufSize]);
+    mCamera.addCallbackBuffer(new byte[bufSize]);
+	
+    mCamera.setPreviewCallbackWithBuffer(mCameraPreview);
+    //mCamera.setPreviewCallback(mCameraPreview);
+    mCamera.startPreview();
+     
+     
+ }
+
 }

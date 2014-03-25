@@ -3,9 +3,9 @@ package fit.vutbr.faceswap;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.IntBuffer;
 import java.nio.ShortBuffer;
-import java.util.List;
 
 import org.opencv.core.Core;
 import org.opencv.core.CvType;
@@ -24,11 +24,10 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Color;
-import android.graphics.ImageFormat;
 import android.graphics.Paint;
+import android.graphics.Path;
 import android.graphics.RectF;
 import android.hardware.Camera;
-import android.hardware.Camera.Parameters;
 import android.os.AsyncTask;
 import android.os.Environment;
 import android.util.AttributeSet;
@@ -43,8 +42,7 @@ import fit.vutbr.faceswap.HeadPose.HeadPoseStatus;
  * (onPreviewFrame).
  *
  */
-public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback,
-														  Camera.PreviewCallback
+public class CameraPreview extends SurfaceView implements Camera.PreviewCallback
 {
 	private static final String    		TAG = "CameraPreview";
 	
@@ -52,19 +50,15 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
 	
 	private SurfaceHolder 				mHolder;
     private Camera 						mCamera;
-    private CascadeClassifier 			mJavaDetector;
+    
+    private CascadeClassifier 			mFaceDetector;
+    private CascadeClassifier 			mEyesDetector;
 
-	private int 						height, width;
+	private int 						mHeight, mWidth;
 	private float 						ratio, xRatio, yRatio;
 	
     private Bitmap 						mBitmap;
     private long 						timestamp = 0;
-    
-    private int[] 						rgb;
-    private IntBuffer 					rgbBuffer;
-    
-    private ShortBuffer 				rgb565Buffer;
-    private short[] 					rgb565;
         
     private boolean 					listenerSupported;
     private MyFaceDetectionListener 	listener;
@@ -83,7 +77,7 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
     private HeadPose 					hp;
     
     private CamShifting 				cs;
-    private TrackerType					mTracker = TrackerType.KALMAN;
+    private TrackerType					mTracker = TrackerType.NONE;
     public boolean 						nextFrame = false;
     private RotatedRect 				face_box;
     
@@ -94,11 +88,12 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
     
     private Bitmap						cageFace;
     
-    int cnt = 0;
+    private int[] 						rgb;
+    private IntBuffer 					rgbBuffer;
     
-    public CameraPreview(Context context) {
-        super(context);
-    }
+    private ShortBuffer 				rgb565Buffer;
+    private short[] 					rgb565;
+    int cnt = 0;
     
     public CameraPreview(Context context, AttributeSet attrs) {
         super(context, attrs);
@@ -108,9 +103,8 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
         super(context, attrs, defStyle);
     }
     
-    @SuppressWarnings("deprecation")
-	void setCameraPreview(Context context, Camera camera, CascadeClassifier javaDetector) {
-        // super(context);
+    CameraPreview(Context context) {
+        super(context);
         mContext = context;
         
         Log.i(TAG, "CameraPreview created");
@@ -129,92 +123,70 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
 		red_rectPaint.setStyle(Paint.Style.STROKE);
 		red_rectPaint.setStrokeWidth(3);
 		
-        mCamera = camera;
-        mJavaDetector = javaDetector;
-        
-        mHolder = getHolder();
-        mHolder.addCallback(this);
-        mHolder.setFormat(ImageFormat.NV21);
-        // zastarale nastaveni, ale nutne pro Android verzi < 3.0
-        mHolder.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
-                
-        cageFace = BitmapFactory.decodeResource(getResources(), R.drawable.cage_face);
-    }
-    
-    public void surfaceCreated(SurfaceHolder holder) {
-    	Log.i(TAG, "Surface created");
-    	
-        // The Surface has been created, now tell the camera where to draw the preview.
-        try {
-            mCamera.setPreviewDisplay(holder);
-            mCamera.startPreview();
-            setWillNotDraw(false);
-        } catch (IOException e) {
-            Log.e(null, "Error setting camera preview: " + e.getMessage());
-            mCamera.release();
-        }
-    }
-    
-    /**
-     * Setting up the camera - */
-    private void setCameraOptions() {
-    	Parameters parameters = mCamera.getParameters();
-    	
-		height = parameters.getPreviewSize().height;
-		width = parameters.getPreviewSize().width;
-		for (Camera.Size res : parameters.getSupportedPreviewSizes()) {
-			Log.d("Supported resolution", res.height + "x" + res.width);
-			height = res.width;
-			width = res.height;
-		}
-		List<Camera.Size> sizes = parameters.getSupportedPreviewSizes();
-		Camera.Size cs = sizes.get(0);  
-
-		height = cs.height;
-		width = cs.width;
-
-		mCamera.setParameters(parameters);
-		Log.d("Setting", width + "x" + height);
-    }
-
-    public void surfaceChanged(SurfaceHolder holder, int format, int w, int h) {    	
-    	setCameraOptions();
-    	
-    	/* API >= 14, FaceDetectoionListener
-    	if (mCamera.getParameters().getMaxNumDetectedFaces() > 0) {
-        	// podpora FaceDetectionListeneru
-        	listenerSupported = true;
-        	listener = new MyFaceDetectionListener(this);
-        	mCamera.setFaceDetectionListener(listener);
-        	mCamera.startFaceDetection();
-        }
-        else 
-        	listenerSupported = false;
-    	*/
-    	
-    	// CamShift init
+        mFaceDetector = loadCascadeClassifier(R.raw.lbpcascade_frontalface);
+        mEyesDetector = loadCascadeClassifier(R.raw.haarcascade_eye_tree_eyeglasses);
+                        
+        // CamShift init
     	cs = new CamShifting();
     	// KLT init
     	hp = new HeadPose();
     	
     	// bitmap with preview data
-		mBitmap = Bitmap.createBitmap(width, height, Bitmap.Config.RGB_565);
-		
-		// using preview callback buffer which is faster than normal callback
-		rgb565 = new short[(int) (width*height)];
-		rgb565Buffer = ShortBuffer.wrap(rgb565);
-		
-		rgb = new int[(int) (width * height * 2)];
-		rgbBuffer = IntBuffer.wrap(rgb);
-				
-	    int bufSize = width * height *
-	            ImageFormat.getBitsPerPixel(mCamera.getParameters().getPreviewFormat()) / 8;
-	    
-        mCamera.addCallbackBuffer(new byte[bufSize]);
-        mCamera.setPreviewCallbackWithBuffer(this);
-        
-		return;
+		//mBitmap = Bitmap.createBitmap(width, height, Bitmap.Config.RGB_565);
+    	
+        cageFace = BitmapFactory.decodeResource(getResources(), R.drawable.cage_face);
     }
+        
+    public void setCamera(Camera camera) {
+    	mCamera = camera;
+    }
+
+    public void setSize(int height, int width) {
+    	mHeight = height;
+    	mWidth = width;
+    }
+    
+    private CascadeClassifier loadCascadeClassifier(int id) {
+    	CascadeClassifier detector = null;
+    	File cascadeFile = null;
+    	
+    	try {
+            // load cascade file from application resources
+            InputStream is = mContext.getResources().openRawResource(id);
+            File cascadeDir = mContext.getDir("cascade", Context.MODE_PRIVATE);
+            
+            if (id == R.raw.lbpcascade_frontalface) 
+            	cascadeFile = new File(cascadeDir, "lbpcascade_frontalface.xml");
+            else if (id == R.raw.haarcascade_eye_tree_eyeglasses)
+            	cascadeFile = new File(cascadeDir, "haarcascade_eye_tree_eyeglasses.xml");
+            
+            FileOutputStream os = new FileOutputStream(cascadeFile);
+            
+            byte[] buffer = new byte[4096];
+            int bytesRead;
+            while ((bytesRead = is.read(buffer)) != -1) {
+                os.write(buffer, 0, bytesRead);
+            }
+            is.close();
+            os.close();
+
+            detector = new CascadeClassifier(cascadeFile.getAbsolutePath());
+            if (detector.empty()) {
+                Log.e(TAG, "Failed to load cascade classifier");
+                detector = null;
+            } else
+                Log.i(TAG, "Loaded cascade classifier from " + cascadeFile.getAbsolutePath());
+            
+            cascadeDir.delete();
+
+        } catch (IOException e) {
+            e.printStackTrace();
+            Log.e(TAG, "Failed to load cascade. Exception thrown: " + e);
+        }
+    	
+    	return detector;
+    }
+
     
     public void onPause() {
 
@@ -242,13 +214,30 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
             }
         }
 	    	    
-	    if (mJavaDetector != null) {
-	    	mJavaDetector.detectMultiScale(mGray, faces, 1.1, 2, 2, // TODO: objdetect.CV_HAAR_SCALE_IMAGE
+	    if (mFaceDetector != null) {
+	    	mFaceDetector.detectMultiScale(mGray, faces, 1.3, 2, 2, // TODO: objdetect.CV_HAAR_SCALE_IMAGE
                     new Size(mAbsoluteFaceSize, mAbsoluteFaceSize), new Size());	    
 	    }
 	    
 	    facesArray = faces.toArray();
 	    faces.release();
+    }
+    
+    private Rect[] detectEyes(Mat face) {
+    	MatOfRect eyes;
+    	Rect[] eyesArray;
+    	
+    	eyes = new MatOfRect();
+	    	    
+	    if (mEyesDetector != null) {
+	    	// zmenseni o 20%
+	    	mEyesDetector.detectMultiScale(face, eyes, 1.3, 2, 2, new Size(mAbsoluteFaceSize/8, mAbsoluteFaceSize/8), new Size());
+	    }
+	    
+	    eyesArray = eyes.toArray();
+	    eyes.release();
+	    
+	    return eyesArray;
     }
     
     /**
@@ -374,20 +363,31 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
 		cnt++;
 		*/
 		
+		// prevod na rgb565 za 15ms
+		/*
+	    //extractLuminanceNative(data, width, height, width, height, rgb);
+		toRGB565(data, width, height, rgb);
+	    // copyPixel by mlo byt rychlejsi nez setPixels, ale funguje divne
+	    //mBitmap.copyPixelsFromBuffer(rgb565Buffer);
+	    mBitmap.setPixels(rgb, 0, width, 0, 0, width, height);
+	    //mBitmap.copyPixelsFromBuffer(rgbBuffer);
+	    //mBitmap.copyPixelsFromBuffer(rgb565Buffer);
+	    */
+		
 		// framerate
 		Log.i("FaceDetector","Time Gap = "+(System.currentTimeMillis()-timestamp));
 	    timestamp=System.currentTimeMillis();
 	    
 	    // create OpenCV Mat from preview frame data
-	    Mat mYuv = new Mat(height + height / 2, width, CvType.CV_8UC1);
+	    Mat mYuv = new Mat(mHeight + mHeight / 2, mWidth, CvType.CV_8UC1);
 	    mYuv.put(0, 0, data);
 	    
 	    // convert YUV to grayscale
-	    mGray = mYuv.submat(0, height, 0, width);
+	    mGray = mYuv.submat(0, mHeight, 0, mWidth);
 	    // convert YUV to RGBA
-	    mRgba = new Mat(height, width, CvType.CV_8UC4);
+	    mRgba = new Mat(mHeight, mWidth, CvType.CV_8UC4);
 		Imgproc.cvtColor(mYuv, mRgba, Imgproc.COLOR_YUV420p2RGBA, 4);
-        
+				
 		// tracker logic
 	    switch (mTracker) {
 	    	case CAMSHIFT:
@@ -406,15 +406,20 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
 	    		// no tracker, just detect faces
 	    		nextFrame = false;
 	    		detectFaces();
+	    		
+	    		/*for (Rect face : facesArray) {
+	    			Rect
+	    		}*/
+	    		
 	    		break;
 	    		
 			default:
 				break;
 	    }
 	    
-	    mRgba.release();
 	    mYuv.release();
 	    mGray.release();
+	    mRgba.release();
 	    
 	    invalidate();
 	    mCamera.addCallbackBuffer(data);
@@ -428,7 +433,7 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
 
 		// zrcadleni canvasu pro predni kameru
 		if (CameraActivity.mCameraID == Camera.CameraInfo.CAMERA_FACING_FRONT)
-			canvas.scale(-1f, 1f, width* 0.5f, height* 0.5f);
+			canvas.scale(-1f, 1f, mWidth* 0.5f, mHeight* 0.5f);
 		
 		if (facesArray != null) { 
 			/*
@@ -514,9 +519,50 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
 			    		break;
 			        
 			    	case NONE:
-			    		RectF rectf = new RectF((float)facesArray[0].tl().x, (float)facesArray[0].tl().y, 
-												(float)facesArray[0].br().x, (float)facesArray[0].br().y);
-			    		canvas.drawOval(rectf, green_rectPaint);
+			    		for (Rect face : facesArray) {
+				    		RectF rectf = new RectF((float)face.tl().x, (float)face.tl().y, 
+													(float)face.br().x, (float)face.br().y);
+				    		canvas.drawOval(rectf, green_rectPaint);
+			    		}
+			    		/*
+			    		if (facesArray.length > 0) {
+			    			Mat face = mGray.submat(facesArray[0]);
+			    			//Log.d(TAG, mGray.dump());
+			    			Rect[] eyes = detectEyes(face);
+			    			Log.d(TAG, "Eyes: " + eyes.length);
+			    		}*/
+			    		
+			    		if (facesArray.length == 2) {			    	        
+			    			/*
+			    			 Bitmap scaledFace0 = Bitmap.createBitmap(
+										    		mBitmap, 
+										    		(int)facesArray[0].tl().x, 
+										    		(int)facesArray[0].tl().y, 
+										    		(int)(facesArray[0].br().x - facesArray[0].tl().x), 
+										    		(int)(facesArray[0].br().y - facesArray[0].tl().y)
+										    	);
+							*/
+			    			//Bitmap scaledFace1 = Bitmap.createScaledBitmap(mBitmap, (int)((float)facesArray[1].width), facesArray[1].height, false);
+			    			/*
+			    			scaledFace0 = getRoundedShape(scaledFace0);
+			    			canvas.drawBitmap(scaledFace0, (float)facesArray[1].tl().x, (float)facesArray[1].tl().y, null);
+				    		*/
+			    			/*
+			    			Mat mask = new Mat();
+			    			Bitmap croppedBitmap = Bitmap.createBitmap(
+						    		mBitmap, 
+						    		(int)facesArray[0].tl().x, 
+						    		(int)facesArray[0].tl().y, 
+						    		(int)(facesArray[0].br().x - facesArray[0].tl().x), 
+						    		(int)(facesArray[0].br().y - facesArray[0].tl().y));
+			    			Mat imgC3 = new Mat();  
+			    		    Imgproc.cvtColor(mRgba, imgC3, Imgproc.COLOR_RGBA2RGB);
+			    			Imgproc.grabCut(imgC3, mask, facesArray[0], new Mat(), new Mat(), 2, Imgproc.GC_INIT_WITH_RECT);
+			    			*/
+			    		}
+			    		
+			    		//mGray.release();
+			    		
 			    		
 					default:
 						break;
@@ -524,10 +570,38 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
 						        
 			}
 		}
+		
 		//canvas.drawBitmap(mBitmap, 0, 0, new Paint(Paint.DITHER_FLAG));
 		
 		return;
 	}
+	
+	public Bitmap getRoundedShape(Bitmap scaleBitmapImage) {
+        int targetWidth = scaleBitmapImage.getWidth();
+        int targetHeight = scaleBitmapImage.getHeight();
+
+        Bitmap targetBitmap = Bitmap.createBitmap(targetWidth,
+                targetHeight, Bitmap.Config.ARGB_8888);
+
+        Canvas canvas = new Canvas(targetBitmap);
+        Path path = new Path();
+        path.addCircle(
+                ((float) targetWidth - 1) / 2,
+                ((float) targetHeight - 1) / 2,
+                (Math.min(((float) targetWidth), ((float) targetHeight)) / 2),
+                Path.Direction.CCW);
+
+        canvas.clipPath(path);
+        Bitmap sourceBitmap = scaleBitmapImage;
+        canvas.drawBitmap(
+                sourceBitmap,
+                new android.graphics.Rect(0, 0, sourceBitmap.getWidth(), sourceBitmap
+                        .getHeight()), 
+                new android.graphics.Rect(0, 0, targetWidth,
+                        targetHeight), 
+                new Paint());
+        return targetBitmap;
+    }
 	
 	/**
 	 * Change tracker mode
@@ -607,15 +681,9 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
 	private native void applyGrayScale(byte[] yuv, int yuv_width,
 			int yuv_height, int[] rgb);
 	
-	private native void toRGB565Native(byte[] yuv, int width,
+	private native void toRGB565(byte[] yuv, int width,
 			int height, int[] rgb);
 	
 	private native void processImage(byte[] data);
     
-	@Override
-	public void surfaceDestroyed(SurfaceHolder arg0) {
-		// TODO Auto-generated method stub
-		
-	}
-	
 }
