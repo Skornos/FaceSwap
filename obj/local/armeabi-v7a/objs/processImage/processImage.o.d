@@ -24,6 +24,7 @@ obj/local/armeabi-v7a/objs/processImage/processImage.o: \
  C:/Android/NDK-r9/platforms/android-18/arch-arm/usr/include/strings.h \
  C:/Android/NDK-r9/platforms/android-18/arch-arm/usr/include/memory.h \
  C:/Android/NDK-r9/sources/cxx-stl/gnu-libstdc++/4.6/include/iostream \
+ C:/Android/NDK-r9/sources/cxx-stl/gnu-libstdc++/4.6/include/list \
  C:/Users\Acer\Projects\OpenCV\OpenCV-2.4.6-android-sdk\sdk\native\jni\/include/opencv2/video/tracking.hpp \
  C:/Users\Acer\Projects\OpenCV\OpenCV-2.4.6-android-sdk\sdk\native\jni\/include/opencv2/core/core.hpp \
  C:/Users\Acer\Projects\OpenCV\OpenCV-2.4.6-android-sdk\sdk\native\jni\/include/opencv2/core/types_c.h \
@@ -94,6 +95,8 @@ C:/Android/NDK-r9/platforms/android-18/arch-arm/usr/include/strings.h:
 C:/Android/NDK-r9/platforms/android-18/arch-arm/usr/include/memory.h:
 
 C:/Android/NDK-r9/sources/cxx-stl/gnu-libstdc++/4.6/include/iostream:
+
+C:/Android/NDK-r9/sources/cxx-stl/gnu-libstdc++/4.6/include/list:
 
 C:/Users\Acer\Projects\OpenCV\OpenCV-2.4.6-android-sdk\sdk\native\jni\/include/opencv2/video/tracking.hpp:
 

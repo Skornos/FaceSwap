@@ -1,4 +1,0 @@
-FaceSwap
-========
-
-bachelor thesis

@@ -6,6 +6,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.IntBuffer;
 import java.nio.ShortBuffer;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.opencv.core.Core;
 import org.opencv.core.CvType;
@@ -29,12 +31,16 @@ import android.graphics.Path;
 import android.graphics.RectF;
 import android.hardware.Camera;
 import android.os.AsyncTask;
+import android.os.Build;
 import android.os.Environment;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
+import android.view.View;
+import android.widget.TextView;
 import fit.vutbr.faceswap.HeadPose.HeadPoseStatus;
+import fit.vutbr.faceswap.CameraActivity;
 
 /**
  * SurfaceView implementing SurfaceHolder callback (callback for
@@ -45,6 +51,7 @@ import fit.vutbr.faceswap.HeadPose.HeadPoseStatus;
 public class CameraPreview extends SurfaceView implements Camera.PreviewCallback
 {
 	private static final String    		TAG = "CameraPreview";
+	private static final int			MIN_DETECTED_FRAMES = 7;
 	
 	public enum 						TrackerType {NONE, CAMSHIFT, KLT, KALMAN};
 	
@@ -53,6 +60,8 @@ public class CameraPreview extends SurfaceView implements Camera.PreviewCallback
     
     private CascadeClassifier 			mFaceDetector;
     private CascadeClassifier 			mEyesDetector;
+    
+    private DetectionBasedTracker  		mNativeDetector;
 
 	private int 						mHeight, mWidth;
 	private float 						ratio, xRatio, yRatio;
@@ -69,7 +78,10 @@ public class CameraPreview extends SurfaceView implements Camera.PreviewCallback
     
     private float 						mRelativeFaceSize   = 0.2f;
     private int                   		mAbsoluteFaceSize   = 0;
+    
     private Rect[] 						facesArray;
+    private List<Rect> 					facesArray_filtered;
+    private List<Integer>				detectedCounter = new ArrayList<Integer>();;
     
     private Mat 						mGray, mRgba;
     
@@ -77,14 +89,14 @@ public class CameraPreview extends SurfaceView implements Camera.PreviewCallback
     private HeadPose 					hp;
     
     private CamShifting 				cs;
-    private TrackerType					mTracker = TrackerType.NONE;
+    private TrackerType					mTracker = TrackerType.KALMAN;
     public boolean 						nextFrame = false;
     private RotatedRect 				face_box;
     
     private static final Scalar   		FACE_RECT_COLOR = new Scalar(0, 255, 0, 255);
     private Context						mContext;
     
-    private android.graphics.Point		kalmanCenter;
+    private List<android.graphics.Point>	kalmanCenterArray = new ArrayList<android.graphics.Point>();
     
     private Bitmap						cageFace;
     
@@ -124,7 +136,9 @@ public class CameraPreview extends SurfaceView implements Camera.PreviewCallback
 		red_rectPaint.setStrokeWidth(3);
 		
         mFaceDetector = loadCascadeClassifier(R.raw.lbpcascade_frontalface);
-        mEyesDetector = loadCascadeClassifier(R.raw.haarcascade_eye_tree_eyeglasses);
+        //mEyesDetector = loadCascadeClassifier(R.raw.haarcascade_eye_tree_eyeglasses);
+        
+        //mNativeDetector = new DetectionBasedTracker(mCascadeFile.getAbsolutePath(), 0);
                         
         // CamShift init
     	cs = new CamShifting();
@@ -135,6 +149,7 @@ public class CameraPreview extends SurfaceView implements Camera.PreviewCallback
 		//mBitmap = Bitmap.createBitmap(width, height, Bitmap.Config.RGB_565);
     	
         cageFace = BitmapFactory.decodeResource(getResources(), R.drawable.cage_face);
+        
     }
         
     public void setCamera(Camera camera) {
@@ -177,6 +192,10 @@ public class CameraPreview extends SurfaceView implements Camera.PreviewCallback
             } else
                 Log.i(TAG, "Loaded cascade classifier from " + cascadeFile.getAbsolutePath());
             
+            //mNativeDetector = new DetectionBasedTracker(cascadeFile.getAbsolutePath(), 0);
+            
+            
+            
             cascadeDir.delete();
 
         } catch (IOException e) {
@@ -202,8 +221,9 @@ public class CameraPreview extends SurfaceView implements Camera.PreviewCallback
     /**
      * Function to detect faces with Haar cascade in OpenCV
      */
-    private void detectFaces() {
+    private Rect[] detectFaces() {
     	MatOfRect faces;
+    	Rect[] facesArray;
     	
     	faces = new MatOfRect();
     	
@@ -212,15 +232,21 @@ public class CameraPreview extends SurfaceView implements Camera.PreviewCallback
             if (Math.round(height * mRelativeFaceSize) > 0) {
                 mAbsoluteFaceSize = Math.round(height * mRelativeFaceSize);
             }
+            //mNativeDetector.setMinFaceSize(mAbsoluteFaceSize);
         }
 	    	    
 	    if (mFaceDetector != null) {
-	    	mFaceDetector.detectMultiScale(mGray, faces, 1.3, 2, 2, // TODO: objdetect.CV_HAAR_SCALE_IMAGE
+	    	mFaceDetector.detectMultiScale(mGray, faces, 1.1, 2, 2, // TODO: objdetect.CV_HAAR_SCALE_IMAGE
                     new Size(mAbsoluteFaceSize, mAbsoluteFaceSize), new Size());	    
 	    }
-	    
+	    /*
+	    if (mNativeDetector != null)
+            mNativeDetector.detect(mGray, faces);
+	    */
 	    facesArray = faces.toArray();
 	    faces.release();
+	    
+	    return facesArray;
     }
     
     private Rect[] detectEyes(Mat face) {
@@ -256,7 +282,7 @@ public class CameraPreview extends SurfaceView implements Camera.PreviewCallback
         	//for (int i = 0; i < facearray1.length; i++)
              //Core.rectangle(mRgba, facearray1[i].tl(), facearray1[i].br(), FACE_RECT_COLOR, 3);
         	Log.i("FdView","Calling create tracked object");
-        	detectFaces();
+        	facesArray = detectFaces();
         	if (facesArray.length>0)
         	{	
         		cs.create_tracked_object(mRgba,facesArray,cs);
@@ -309,7 +335,7 @@ public class CameraPreview extends SurfaceView implements Camera.PreviewCallback
     	nextFrame = false;	
 		// detect faces
 		if(hp.hpstatus==HeadPoseStatus.NONE) {
-	    	detectFaces();
+			facesArray = detectFaces();
     	}
 		
 		// track faces
@@ -326,9 +352,109 @@ public class CameraPreview extends SurfaceView implements Camera.PreviewCallback
      */
     private void kalmanFilter() {
     	nextFrame = false;
-		// detect faces
-		detectFaces();
+    	
+    	// detect faces
+    	Rect[] facesArray_prev_frame = facesArray;
+		Rect[] facesArray_curr_frame = detectFaces();
 		
+		// detekovany alespon 2 obliceje, 
+		// Kalman filter pro kazdy => hungarian algorithm
+		// Seradim obliceje
+		if (facesArray_prev_frame != null && facesArray_curr_frame.length > 1) {
+			HungarianMatrix matrix = new HungarianMatrix(facesArray_prev_frame, facesArray_curr_frame);			
+			facesArray = matrix.orderByAssociations(facesArray_curr_frame);			
+		}
+		else
+			facesArray = facesArray_curr_frame;
+    	
+		// prenastavim velikost seznamu podle delky facesArray
+		if (detectedCounter.size() < facesArray.length) {
+			for (int i=0;i<facesArray.length;i++)
+				detectedCounter.add(0);
+		}
+		else {
+			detectedCounter.subList(facesArray.length, detectedCounter.size()).clear();
+		}
+		
+		// vytvoreni seznamu obliceju, ktere se uz budou vykreslovat
+		facesArray_filtered = new ArrayList<Rect>();
+		for (int i=0; i<detectedCounter.size(); i++) {
+			detectedCounter.set(i, detectedCounter.get(i)+1);
+			if (detectedCounter.get(i) > MIN_DETECTED_FRAMES) {
+				facesArray_filtered.add(facesArray[i]);
+			}
+			System.out.println("Detected at index " + i + ": " + detectedCounter.get(i));
+		}
+		
+		int[] centers = new int[facesArray_filtered.size()*2];
+		int i = 0;
+		for (Rect face:facesArray_filtered) {
+			centers[i++] = (int)face.tl().x+face.width/2;
+			centers[i++] = (int)face.tl().y+face.height/2;
+		}
+					
+		int ret[] = new int[facesArray.length*2];
+		// native call to Kalman Filter						
+		
+		ret = kalmanFilterNative(centers);
+		
+		kalmanCenterArray.removeAll(kalmanCenterArray);
+		for (int j=0; j < ret.length; j+=2) {
+			android.graphics.Point kalmanCenter = new android.graphics.Point(ret[j], ret[j+1]);
+			kalmanCenterArray.add(kalmanCenter);
+		}
+    	
+    	/*
+		// detect faces
+    	Rect[] facesArray_prev_frame = facesArray;
+		Rect[] facesArray_curr_frame = detectFaces();
+		
+		// detekovany alespon 2 obliceje, 
+		// Kalman filter pro kazdy => hungarian algorithm
+		if (facesArray_prev_frame != null && facesArray_curr_frame.length > 1) {
+			HungarianMatrix matrix = new HungarianMatrix(facesArray_prev_frame, facesArray_curr_frame);
+			
+			
+			//for (Rect face:facesArray_curr_frame)
+			//	Log.d(TAG, face.toString());
+			
+			
+			facesArray = matrix.orderByAssociations(facesArray_curr_frame);
+			
+			
+			//Log.d(TAG, " \n");
+			//for (Rect face:facesArray)
+			//	Log.d(TAG, face.toString());
+			
+			
+			int center_x = (int)facesArray[0].tl().x+facesArray[0].width/2;
+			int center_y = (int)facesArray[0].tl().y+facesArray[0].height/2;
+			
+			int center_x2 = (int)facesArray[1].tl().x+facesArray[1].width/2;
+			int center_y2 = (int)facesArray[1].tl().y+facesArray[1].height/2;
+			
+			//Log.d("orig. center", "x = " + center_x + ", y = " + center_y);
+			
+			int ret[] = new int[4];
+			// native call to Kalman Filter
+			ret = kalmanFilterNative(center_x, center_y, center_x2, center_y2);
+			
+			Log.d("Kalman input", center_x + " " + center_y);
+			Log.d("Kalman input", center_x2 + " " + center_y2);
+			
+			kalmanCenter = new android.graphics.Point(ret[0], ret[1]);
+			kalmanCenter2 = new android.graphics.Point(ret[2], ret[3]);
+			
+			Log.d("Kalman output", kalmanCenter.x + " " + kalmanCenter.y);
+			Log.d("Kalman output", kalmanCenter2.x + " " + kalmanCenter2.y);
+			
+		}
+		else
+			facesArray = facesArray_curr_frame;
+		*/
+    	
+		/*
+    	facesArray = detectFaces();
 		if (facesArray.length>0) {
 			// center of the detected face's frame
 			int center_x = (int)facesArray[0].tl().x+facesArray[0].width/2;
@@ -338,12 +464,11 @@ public class CameraPreview extends SurfaceView implements Camera.PreviewCallback
 			
 			int ret[] = new int[2];
 			// native call to Kalman Filter
-			ret = kalmanFilter(center_x, center_y);
+			ret = kalmanFilterNative(center_x, center_y);
 			
 			kalmanCenter = new android.graphics.Point(ret[0], ret[1]);
-			
-			//Log.i("kalman center", "x = " + ret[0] + ", y = " + ret[1]);
 		}
+		*/
     }
     
     /**
@@ -373,10 +498,11 @@ public class CameraPreview extends SurfaceView implements Camera.PreviewCallback
 	    //mBitmap.copyPixelsFromBuffer(rgbBuffer);
 	    //mBitmap.copyPixelsFromBuffer(rgb565Buffer);
 	    */
-		
+
 		// framerate
 		Log.i("FaceDetector","Time Gap = "+(System.currentTimeMillis()-timestamp));
-	    timestamp=System.currentTimeMillis();
+		CameraActivity.fpsTextView.setText("FPS: " + (int)(1000/(System.currentTimeMillis()-timestamp)));
+		timestamp=System.currentTimeMillis();
 	    
 	    // create OpenCV Mat from preview frame data
 	    Mat mYuv = new Mat(mHeight + mHeight / 2, mWidth, CvType.CV_8UC1);
@@ -405,7 +531,7 @@ public class CameraPreview extends SurfaceView implements Camera.PreviewCallback
 	    	case NONE:
 	    		// no tracker, just detect faces
 	    		nextFrame = false;
-	    		detectFaces();
+	    		facesArray = detectFaces();
 	    		
 	    		/*for (Rect face : facesArray) {
 	    			Rect
@@ -507,12 +633,33 @@ public class CameraPreview extends SurfaceView implements Camera.PreviewCallback
 			            break;
 			    	
 			    	case KALMAN:
-			    		RectF rectfKalman = new RectF((float)(kalmanCenter.x-facesArray[0].width/3), 
-			    									  (float)(kalmanCenter.y-facesArray[0].height/2),
-			    									  (float)(kalmanCenter.x+facesArray[0].width/3), 
-			    									  (float)(kalmanCenter.y+facesArray[0].height/2));
-			    		canvas.drawOval(rectfKalman, red_rectPaint);
+			    		for (android.graphics.Point kalmanCenter:kalmanCenterArray) {
+			    			RectF rectfKalman = new RectF((float)(kalmanCenter.x-facesArray[0].width/3), 
+									  (float)(kalmanCenter.y-facesArray[0].height/2),
+									  (float)(kalmanCenter.x+facesArray[0].width/3), 
+									  (float)(kalmanCenter.y+facesArray[0].height/2));
+			    			canvas.drawOval(rectfKalman, red_rectPaint);
+			    		}
 			    		
+			    		/*
+			    		if (facesArray.length == 2) {			    	        
+			    			
+			    			 Bitmap scaledFace0 = Bitmap.createBitmap(
+										    		mBitmap, 
+										    		(int)facesArray[0].tl().x, 
+										    		(int)facesArray[0].tl().y, 
+										    		(int)(facesArray[0].br().x - facesArray[0].tl().x), 
+										    		(int)(facesArray[0].br().y - facesArray[0].tl().y)
+										    	);
+							
+			    			//Bitmap scaledFace1 = Bitmap.createScaledBitmap(mBitmap, (int)((float)facesArray[1].width), facesArray[1].height, false);
+			    			
+			    			scaledFace0 = getRoundedShape(scaledFace0);
+			    			canvas.drawBitmap(scaledFace0, (float)facesArray[1].tl().x, (float)facesArray[1].tl().y, null);
+				    		
+			    			
+			    		}
+			    		*/
 			    		//Bitmap scaledCageFace = Bitmap.createScaledBitmap(cageFace, (int)((float)facesArray[0].width * 2 / 3), facesArray[0].height, false);
 			    		//canvas.drawBitmap(scaledCageFace, kalmanCenter.x-facesArray[0].width/3, kalmanCenter.y-facesArray[0].height/2, null);
 			    		
@@ -530,8 +677,8 @@ public class CameraPreview extends SurfaceView implements Camera.PreviewCallback
 			    			//Log.d(TAG, mGray.dump());
 			    			Rect[] eyes = detectEyes(face);
 			    			Log.d(TAG, "Eyes: " + eyes.length);
-			    		}*/
-			    		
+			    		}
+			    		*/
 			    		if (facesArray.length == 2) {			    	        
 			    			/*
 			    			 Bitmap scaledFace0 = Bitmap.createBitmap(
@@ -573,9 +720,12 @@ public class CameraPreview extends SurfaceView implements Camera.PreviewCallback
 		
 		//canvas.drawBitmap(mBitmap, 0, 0, new Paint(Paint.DITHER_FLAG));
 		
-		return;
+		//new SavePhotoTask().execute(canvas);
+		//cnt++;
+		
+		
 	}
-	
+		
 	public Bitmap getRoundedShape(Bitmap scaleBitmapImage) {
         int targetWidth = scaleBitmapImage.getWidth();
         int targetHeight = scaleBitmapImage.getHeight();
@@ -624,9 +774,9 @@ public class CameraPreview extends SurfaceView implements Camera.PreviewCallback
 	 * Adapted from: stackoverflow...zdroj
 	 *
 	 */
-	class SavePhotoTask extends AsyncTask<byte[], String, String> {
+	class SavePhotoTask extends AsyncTask<Canvas, String, String> {
 	    @Override
-	    protected String doInBackground(byte[]... jpeg) {
+	    protected String doInBackground(Canvas... jpeg) {
 	      File photo = getOutputMediaFile();
 
 	      if (photo.exists()) {
@@ -636,7 +786,15 @@ public class CameraPreview extends SurfaceView implements Camera.PreviewCallback
 	      try {
 	        FileOutputStream fos=new FileOutputStream(photo.getPath());
 
-	        fos.write(jpeg[0]);
+	        try {
+	        	setDrawingCacheEnabled(true);
+	        	//buildDrawingCache(true);
+                getDrawingCache().compress(Bitmap.CompressFormat.JPEG, 100, fos);
+                setDrawingCacheEnabled(false);
+            } catch (Exception e) {
+                Log.e("Error--------->", e.toString());
+            }
+	        
 	        fos.close();
 	      }
 	      catch (java.io.IOException e) {
@@ -666,15 +824,15 @@ public class CameraPreview extends SurfaceView implements Camera.PreviewCallback
 		    } 
 		    // Create a media file name
 		    File mediaFile;
-		    String mImageName="camshift"+ cnt +".jpg";
+		    String mImageName="img"+ cnt +".jpg";
 		    mediaFile = new File(mediaStorageDir.getPath() + File.separator + mImageName);  
 		    
 		    return mediaFile;
 		} 
 	}
 	
-	private native int[] kalmanFilter(int center_x, int center_y);
-	
+	private native int[] kalmanFilterNative(int[] centers);
+		
 	private native void extractLuminanceNative(byte[] yuv, int yuv_width,
 			int yuv_height, int rgb_width, int rgb_height, int[] rgb);
 	

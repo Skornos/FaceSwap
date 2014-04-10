@@ -20,9 +20,12 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.SurfaceHolder;
 import android.view.View;
+import android.view.View.OnClickListener;
 import android.view.ViewGroup;
 import android.view.WindowManager;
+import android.widget.FrameLayout;
 import android.widget.ImageButton;
+import android.widget.TextView;
 import fit.vutbr.faceswap.CameraPreview.TrackerType;
 
 /**
@@ -38,6 +41,7 @@ import fit.vutbr.faceswap.CameraPreview.TrackerType;
  * 		  or betweeen you and couple of prepared characters (starring Nicolas Cage)
  * 		- capture a video?
  *
+ * Ikonky byly vytvoreny pomoci Adroid Asset Studio, licence: http://creativecommons.org/licenses/by/3.0/
  */
 public class CameraActivity extends Activity {
 	
@@ -45,8 +49,9 @@ public class CameraActivity extends Activity {
 	
     private Preview 			   mPreview;
     private Camera 				   mCamera;
-    public static int	   	       mCameraID = Camera.CameraInfo.CAMERA_FACING_FRONT;
+    public static int	   	       mCameraID = Camera.CameraInfo.CAMERA_FACING_BACK;
     private MenuItem			   kltItem, camshiftItem, kalmanItem, noTrackerItem; 
+    public static TextView 		   fpsTextView;
     
     // OpenCV static initialization
     static {
@@ -56,6 +61,7 @@ public class CameraActivity extends Activity {
         }
         else {
         	System.loadLibrary("processImage");
+        	//System.loadLibrary("detection_based_tracker");
         }
     }
     
@@ -103,7 +109,34 @@ public class CameraActivity extends Activity {
         }
         
         mPreview = new Preview(this);
-        setContentView(mPreview);
+        setContentView(R.layout.main);
+        
+        ImageButton switch_camera_btn = (ImageButton) findViewById(R.id.switch_camera_button);
+        switch_camera_btn.setOnClickListener(new OnClickListener() {
+			@Override
+			public void onClick(View v) {
+				if (mCameraID == Camera.CameraInfo.CAMERA_FACING_FRONT) {
+					switchCamera(Camera.CameraInfo.CAMERA_FACING_BACK);
+				}
+				else {
+					switchCamera(Camera.CameraInfo.CAMERA_FACING_FRONT);
+				}
+			}
+		});
+        
+        ImageButton settings_btn = (ImageButton) findViewById(R.id.settings_button);
+        settings_btn.setOnClickListener(new OnClickListener() {
+			@Override
+			public void onClick(View v) {
+				openOptionsMenu();
+			}
+		});
+        
+        fpsTextView = (TextView) findViewById(R.id.fpsHolder);
+        fpsTextView.setText("FPS");
+        
+        FrameLayout fl = (FrameLayout) findViewById(R.id.cameraPreview);
+        fl.addView(mPreview);
     }
     
     @Override
@@ -402,7 +435,17 @@ Preview(Context context) {
     mCamera.setPreviewCallbackWithBuffer(mCameraPreview);
     //mCamera.setPreviewCallback(mCameraPreview);
     mCamera.startPreview();
-     
+    
+    /*
+    TextView fpsTextView = (TextView) findViewById(R.id.fpsHolder);
+    if (fpsTextView == null) {
+    	Log.e(TAG, "FPS TEXT NOT FOUND FROM PREVIEW");
+    	System.exit(1);
+    }
+    else
+    	Log.d(TAG, "fpsTextView: " + fpsTextView);
+    	*/
+    
      
  }
 

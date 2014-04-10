@@ -1,55 +1,50 @@
 <?xml version="1.0" encoding="utf-8"?>
 
-<LinearLayout 
-    xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:orientation="horizontal" 
-    android:layout_width="match_parent" 
-	android:layout_height="match_parent">
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+	<FrameLayout
+        android:id="@+id/cameraPreview"
+        android:layout_width="fill_parent"
+        android:layout_height="fill_parent"
+        
+        android:foregroundGravity="center_vertical" >
+
+    </FrameLayout>
     
-    <fit.vutbr.faceswap.Preview
-	    xmlns:android="http://schemas.android.com/apk/res/android"
-	    xmlns:app="http://schemas.android.com/apk/res-auto"
-	    android:id="@+id/preview"  
-	    android:layout_width="0dp" 
-	    android:layout_weight="1"
-	    android:layout_height="match_parent"
-	    >
-	    
-	    <!--<FrameLayout
-	    	xmlns:android="http://schemas.android.com/apk/res/android" 
-		    android:layout_width="fill_parent"
-		    android:layout_height="fill_parent" >
-		     <ImageButton
-			        android:id="@+id/switch_camera_button"
-			        android:layout_width="wrap_content"
-			        android:layout_height="wrap_content"
-			        android:background="@null"
-			        android:src="@drawable/switch_100px_white" />    
-			  
-			      
-		    <fit.vutbr.faceswap.CameraPreview
-			    android:id="@+id/camerapreview"  
-			    android:layout_width="fill_parent" 
-			    android:layout_height="fill_parent">
-		    </fit.vutbr.faceswap.CameraPreview>
-	    </FrameLayout>
-	   --> 
-	    
-	   
-	   <fit.vutbr.faceswap.CameraPreview
-		    android:id="@+id/camerapreview"  
-		    android:layout_width="fill_parent" 
-		    android:layout_height="fill_parent">
-	    </fit.vutbr.faceswap.CameraPreview>
-	    
-	</fit.vutbr.faceswap.Preview>
-    <!-- <ImageButton
-			        android:id="@+id/switch_camera_button"
-			        android:layout_width="wrap_content"
-			        android:layout_height="wrap_content"
-			        android:background="@null"
-			        android:src="@drawable/switch_100px_white" />  
-     -->
-</LinearLayout>
+    <!-- FPS -->
+
+    <TextView
+        android:id="@+id/fpsHolder"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_alignParentRight="true"
+        android:layout_alignParentTop="true"
+        android:gravity="right"
+        tools:context=".MainActivity" />
+
+ 	<!-- Dalsi ui overlay elementy -->
+
+    <ImageButton
+        android:id="@+id/switch_camera_button"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_alignParentLeft="true"
+        android:background="@null"
+        android:src="@drawable/switch_camera" />
+
+    <ImageButton
+        android:id="@+id/settings_button"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_alignParentRight="true"
+        android:background="@null"
+        android:src="@drawable/action_settings" />
+
+</RelativeLayout>
+
 
