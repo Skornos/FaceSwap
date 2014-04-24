@@ -13,6 +13,8 @@ import android.content.Context;
 import android.content.Intent;
 import android.graphics.ImageFormat;
 import android.hardware.Camera;
+import android.hardware.Camera.AutoFocusCallback;
+import android.hardware.Camera.Parameters;
 import android.hardware.Camera.Size;
 import android.os.Bundle;
 import android.util.Log;
@@ -132,6 +134,14 @@ public class CameraActivity extends Activity {
 			}
 		});
         
+        ImageButton take_photo_btn = (ImageButton) findViewById(R.id.take_photo_button);
+        take_photo_btn.setOnClickListener(new OnClickListener() {
+			@Override
+			public void onClick(View v) {
+				mPreview.mCameraPreview.takePicture();
+			}
+		});
+        
         fpsTextView = (TextView) findViewById(R.id.fpsHolder);
         fpsTextView.setText("FPS");
         
@@ -194,16 +204,15 @@ public class CameraActivity extends Activity {
     
 	@Override
     public boolean onCreateOptionsMenu(Menu menu) {
-        camshiftItem = menu.add("CAMshift");
-        kltItem = menu.add("KLT");
+		//camshiftItem = menu.add("CAMshift");
+        //kltItem = menu.add("KLT");
         kalmanItem = menu.add("Kalman filter");
-        noTrackerItem = menu.add("No tracker");
+        //noTrackerItem = menu.add("No tracker");
         return true;
     }
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        
     	if (item == kltItem) {
     		mPreview.mCameraPreview.setTracker(TrackerType.KLT);
     	}
@@ -411,14 +420,39 @@ Preview(Context context) {
      return optimalSize;
  }
 
+ boolean startContinuousAutoFocus() {
+
+    Camera.Parameters params = mCamera.getParameters();
+
+    List<String> focusModes = params.getSupportedFocusModes();
+
+    String CAF_PICTURE = Parameters.FOCUS_MODE_CONTINUOUS_PICTURE, 
+           CAF_VIDEO = Parameters.FOCUS_MODE_CONTINUOUS_VIDEO, 
+           supportedMode = focusModes
+                   .contains(CAF_PICTURE) ? CAF_PICTURE : focusModes
+                   .contains(CAF_VIDEO) ? CAF_VIDEO : "";
+
+    if (!supportedMode.equals("")) {
+
+        params.setFocusMode(supportedMode);
+        mCamera.setParameters(params);
+        return true;
+    }
+
+    return false;
+}
+ 
  public void surfaceChanged(SurfaceHolder holder, int format, int w, int h) {
      // Now that the size is known, set up the camera parameters and begin
      // the preview.
      Camera.Parameters parameters = mCamera.getParameters();
      parameters.setPreviewSize(mPreviewSize.width, mPreviewSize.height);
      requestLayout();
-
+     
      mCamera.setParameters(parameters);
+     
+     boolean focused = startContinuousAutoFocus();
+     Log.d(TAG, "Continuous autofocus enabled: " + focused);
      
      int height = parameters.getPreviewSize().height;
 	 int width = parameters.getPreviewSize().width;

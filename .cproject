@@ -32,6 +32,7 @@
 									<listOptionValue builtIn="false" value="&quot;C:\Android\NDK-r9\sources\cxx-stl\gnu-libstdc++\4.6\include&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;C:\Android\NDK-r9\platforms\android-18\arch-arm\usr\include&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;C:\Users\Acer\Projects\OpenCV\OpenCV-2.4.6-android-sdk\sdk\native\jni\include&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;C:\Android\eigen&quot;"/>
 								</option>
 								<inputType id="com.android.gcc.inputType.814378537" superClass="com.android.gcc.inputType"/>
 							</tool>
@@ -59,4 +60,5 @@
 		<resource resourceType="PROJECT" workspacePath="/FaceSwap"/>
 	</storageModule>
 	<storageModule moduleId="org.eclipse.cdt.internal.ui.text.commentOwnerProjectMappings"/>
+	<storageModule moduleId="org.eclipse.cdt.core.LanguageSettingsProviders"/>
 </cproject>

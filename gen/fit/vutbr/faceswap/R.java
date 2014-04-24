@@ -53,12 +53,11 @@ containing a value of this type.
         public static final int cage_full2=0x7f020003;
         public static final int cage_full3=0x7f020004;
         public static final int ic_launcher=0x7f020005;
-        public static final int switch_100px=0x7f020006;
-        public static final int switch_100px_white=0x7f020007;
-        public static final int switch_camera=0x7f020008;
+        public static final int switch_camera=0x7f020006;
+        public static final int take_photo=0x7f020007;
     }
     public static final class id {
-        public static final int action_settings=0x7f050007;
+        public static final int action_settings=0x7f050008;
         public static final int any=0x7f050000;
         public static final int back=0x7f050001;
         public static final int cameraPreview=0x7f050003;
@@ -66,6 +65,7 @@ containing a value of this type.
         public static final int front=0x7f050002;
         public static final int settings_button=0x7f050006;
         public static final int switch_camera_button=0x7f050005;
+        public static final int take_photo_button=0x7f050007;
     }
     public static final class layout {
         public static final int main=0x7f030000;

@@ -33,6 +33,7 @@
         android:layout_height="wrap_content"
         android:layout_alignParentBottom="true"
         android:layout_alignParentLeft="true"
+        android:layout_marginLeft="14dp"
         android:background="@null"
         android:src="@drawable/switch_camera" />
 
@@ -40,10 +41,20 @@
         android:id="@+id/settings_button"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_alignParentBottom="true"
+        android:layout_alignBottom="@+id/take_photo_button"
         android:layout_alignParentRight="true"
+        android:layout_marginRight="14dp"
         android:background="@null"
         android:src="@drawable/action_settings" />
+
+    <ImageButton
+        android:id="@+id/take_photo_button"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_centerHorizontal="true"
+        android:background="@null"
+        android:src="@drawable/take_photo" />
 
 </RelativeLayout>
 

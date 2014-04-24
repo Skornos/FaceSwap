@@ -1,11 +1,14 @@
 package fit.vutbr.faceswap;
 
 import java.lang.reflect.Array;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 import org.opencv.core.Rect;
 
 import fit.vutbr.faceswap.HungarianAlgorithm;
+import fit.vutbr.faceswap.CameraPreview.FaceRect;
 
 import android.util.Log;
 
@@ -14,7 +17,7 @@ public class HungarianMatrix {
 	
 	float[][] euclidean_matrix;
 	
-	public HungarianMatrix(Rect[] facesArray_prev_frame, Rect[] facesArray_curr_frame) {
+	public HungarianMatrix(List<FaceRect> facesArray_prev_frame, List<FaceRect> facesArray_curr_frame) {
 		
 		fillMatrix(facesArray_prev_frame, facesArray_curr_frame);
 		setDummyValues();
@@ -23,13 +26,13 @@ public class HungarianMatrix {
 		
 	}
 	
-	public Rect[] orderByAssociations(Rect[] facesArray) {
-		Rect[] facesArray_ordered;
+	public List<FaceRect> orderByAssociations(List<FaceRect> facesArray) {
+		FaceRect[] facesArray_ordered;
 		
 		String output_str = "";
 		int[][] order_indexes = computeAssociations();
 		
-		facesArray_ordered = new Rect[facesArray.length];
+		facesArray_ordered = new FaceRect[facesArray.size()];
 		
 		/*for (int[] i : order_indexes) {
 			for (int j : i) {
@@ -42,13 +45,13 @@ public class HungarianMatrix {
 		
 		int j = 0;
 		for (int i=0; i < order_indexes.length; i++) {
-			if (order_indexes[i][0] < facesArray.length) {
-				facesArray_ordered[j] = facesArray[order_indexes[i][0]].clone();
+			if (order_indexes[i][0] < facesArray.size()) {
+				facesArray_ordered[j] = facesArray.get(order_indexes[i][0]);
 				j++;
 			}
 		}
 		
-		return facesArray_ordered;
+		return new ArrayList<FaceRect>(Arrays.asList(facesArray_ordered));
 	}
 	
 	private int[][] computeAssociations() {
@@ -75,27 +78,27 @@ public class HungarianMatrix {
 	// naplnim matici Euklidovskymi vzdalenostmi mezi body
 	// radky: body aktualniho snimku
 	// sloupce: body z predchoziho snimku
-	private void fillMatrix(Rect[] facesArray_prev_frame, Rect[] facesArray_curr_frame) {
-		Log.d(TAG, "Prev: " + facesArray_prev_frame.length);
-		Log.d(TAG, "Curr: " + facesArray_curr_frame.length);
+	private void fillMatrix(List<FaceRect> facesArray_prev_frame, List<FaceRect> facesArray_curr_frame) {
+		//Log.d(TAG, "Prev: " + facesArray_prev_frame.length);
+		//Log.d(TAG, "Curr: " + facesArray_curr_frame.length);
 		
 		// vytvorim ctvercovou matici
-		if (facesArray_prev_frame.length >= facesArray_curr_frame.length) {
-			euclidean_matrix = new float[facesArray_prev_frame.length][facesArray_prev_frame.length];
+		if (facesArray_prev_frame.size() >= facesArray_curr_frame.size()) {
+			euclidean_matrix = new float[facesArray_prev_frame.size()][facesArray_prev_frame.size()];
 		}
 		else {
-			euclidean_matrix = new float[facesArray_curr_frame.length][facesArray_curr_frame.length];
+			euclidean_matrix = new float[facesArray_curr_frame.size()][facesArray_curr_frame.size()];
 		}
 		
 		// naplnim matici -1
 		for (float[] row:euclidean_matrix)
 			Arrays.fill(row, (float)-1.0);
 		
-		for (int i=0; i < facesArray_curr_frame.length; i++) {
-			Rect face_curr = facesArray_curr_frame[i];
+		for (int i=0; i < facesArray_curr_frame.size(); i++) {
+			Rect face_curr = facesArray_curr_frame.get(i).getRect();
 			
-			for (int j=0; j < facesArray_prev_frame.length; j++) {
-				Rect face_prev = facesArray_prev_frame[j];
+			for (int j=0; j < facesArray_prev_frame.size(); j++) {
+				Rect face_prev = facesArray_prev_frame.get(j).getRect();
 				
 				int diffX = face_prev.x - face_curr.x;
 				int diffY = face_prev.y - face_curr.y;

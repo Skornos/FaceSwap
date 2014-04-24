@@ -1,0 +1,7 @@
+repo: 8a21fd850624c931e448cbcfb38168cb2717c790
+node: 2e2c8da72443121f2232b589824d30e017cee003
+branch: default
+latesttag: 3.0-beta2
+latesttag: 3.0-beta2-android
+latesttag: patch
+latesttagdistance: 2
